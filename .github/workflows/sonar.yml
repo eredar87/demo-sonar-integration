@@ -9,10 +9,10 @@ jobs:
   sonar:
     runs-on: ubuntu-latest
 
-    # Definimos los secrets a nivel de job
+    # Ambos secrets en el job-level env
     env:
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      SONAR_TOKEN:    ${{ secrets.SONAR_TOKEN }}
+      SONAR_TOKEN:     ${{ secrets.SONAR_TOKEN }}
 
     steps:
       - name: Checkout code
@@ -31,10 +31,9 @@ jobs:
       - name: Debug Sonar env
         run: |
           echo "HOST URL → $SONAR_HOST_URL"
-          echo "TOKEN length → ${#SONAR_TOKEN}"
+          echo "TOKEN len → ${#SONAR_TOKEN}"
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_TOKEN:    ${{ secrets.SONAR_TOKEN }}
+        # Hereda ambos valores del env del job
+        # (no es necesario redeclararlos aquí)
