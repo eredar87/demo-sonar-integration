@@ -1,0 +1,11 @@
+{
+  "name": "demo-sonar-integration",
+  "version": "1.0.0",
+  "description": "Demo repo to test SonarQube integration",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "author": "",
+  "license": "MIT"
+}
