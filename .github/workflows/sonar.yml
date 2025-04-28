@@ -42,24 +42,40 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           PROJECT_KEY: demo-sonar-integration
         run: |
-          echo "Consultando issues críticos y altos..."
+          echo "Gathering issues..."
           curl -u $SONAR_TOKEN: \
-            "$SONAR_HOST_URL/api/issues/search?componentKeys=$PROJECT_KEY&severities=CRITICAL,BLOCKER,MAJOR&resolved=false&ps=100" \
+            "$SONAR_HOST_URL/api/issues/search?componentKeys=$PROJECT_KEY&resolved=false&ps=500" \
             -o findings.json
         shell: bash
-
-      - name: Mostrar findings en consola
+      
+      - name: Show Summary
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          echo "Resumen de findings críticos/altos:"
-          jq '.issues[] | {
+          echo "╔══════════════════════════════════════╗"
+          echo "║      Summary of Findings             ║"
+          echo "╚══════════════════════════════════════╝"
+          
+          for severity in BLOCKER CRITICAL MAJOR MINOR INFO; do
+            count=$(jq "[.issues[] | select(.severity==\"$severity\") ] | length" findings.json)
+            printf "%-10s : %s\n" "$severity" "$count"
+          done
+      
+          echo ""
+          echo "══════════════════════════════════════"
+          echo "findings crit/high:"
+          echo "══════════════════════════════════════"
+      
+          jq --arg sonar_host_url "$SONAR_HOST_URL" '.issues[] | select(.severity=="BLOCKER" or .severity=="CRITICAL" or .severity=="MAJOR") | {
             rule: .rule,
             severity: .severity,
             message: .message,
             component: .component,
             line: .line,
-            url: ("'${{ secrets.SONAR_HOST_URL }}'/project/issues?id=" + .project + "&issues=" + .key)
+            url: ($sonar_host_url + "/project/issues?id=" + .project + "&issues=" + .key)
           }' findings.json
         shell: bash
+
 
       # (Opcional - Comentado por ahora)
       # - name: Breaking build if Criticals are founded.
