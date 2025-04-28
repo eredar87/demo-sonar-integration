@@ -32,11 +32,11 @@ jobs:
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
-      - name: Esperar a que SonarQube termine el análisis
-        run: sleep 30
+      - name: Wait for Sonar Analysis
+        run: sleep 45
         shell: bash
 
-      - name: Obtener findings críticos y altos de SonarQube
+      - name: Gather Critical and High Findings
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -61,8 +61,8 @@ jobs:
           }' findings.json
         shell: bash
 
-      # (Opcional - Dejado comentado por ahora)
-      # - name: Falla si hay findings críticos
+      # (Opcional - Comentado por ahora)
+      # - name: Breaking build if Criticals are founded.
       #   if: success()
       #   run: |
       #     critical_count=$(jq '[.issues[] | select(.severity=="BLOCKER" or .severity=="CRITICAL")] | length' findings.json)
