@@ -1,0 +1,79 @@
+name: Build and analyze on SonarQube
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build and analyze on SonarQube
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: temurin
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Build and analyze
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          ./gradlew build sonarqube \
+            -Dsonar.projectKey=demo-sonar-integration \
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+      # NUEVOS PASOS para obtener y mostrar findings
+      - name: Esperar a que SonarQube termine el análisis
+        run: sleep 30
+        shell: bash
+
+      - name: Obtener findings críticos y altos de SonarQube
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          PROJECT_KEY: demo-sonar-integration
+        run: |
+          echo "Consultando issues críticos y altos..."
+          curl -u $SONAR_TOKEN: \
+            "$SONAR_HOST_URL/api/issues/search?componentKeys=$PROJECT_KEY&severities=CRITICAL,BLOCKER,MAJOR&resolved=false&ps=100" \
+            -o findings.json
+        shell: bash
+
+      - name: Mostrar findings en consola
+        run: |
+          echo "Resumen de findings críticos/altos:"
+          jq '.issues[] | {
+            rule: .rule,
+            severity: .severity,
+            message: .message,
+            component: .component,
+            line: .line,
+            url: ("'${{ secrets.SONAR_HOST_URL }}'/project/issues?id=" + .project + "&issues=" + .key)
+          }' findings.json
+        shell: bash
+
+      # (Opcional - Dejado comentado por ahora)
+      # - name: Falla si hay findings críticos
+      #   if: success()
+      #   run: |
+      #     critical_count=$(jq '[.issues[] | select(.severity=="BLOCKER" or .severity=="CRITICAL")] | length' findings.json)
+      #     if [ "$critical_count" -gt 0 ]; then
+      #       echo "Encontrados $critical_count findings críticos. Failing pipeline."
+      #       exit 1
+      #     else
+      #       echo "No hay findings críticos."
+      #     fi
+      #   shell: bash
